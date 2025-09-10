@@ -1,0 +1,6 @@
+@BuildOpsPlatform.RevitDataService_HostAddress = http://localhost:5078
+
+GET {{BuildOpsPlatform.RevitDataService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

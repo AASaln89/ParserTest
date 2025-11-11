@@ -114,7 +114,7 @@ namespace BuildOpsPlatform.RevitDataService.Consumers
                         {
                             Id = Guid.Parse(snapshotId),
                             DocumentId = documentId,
-                            UploadDate = snapshot.UploadDateUnixMs.ToDateTime(),
+                            UploadDate = DateTime.Parse(snapshot.UploadDateUnixMs),
                         });
                         await db.SaveChangesAsync(ct);
                     }

@@ -34,7 +34,7 @@ message RevitProjectDataMessage {
 // Snapshot
 message RvtSnapshotDto {
   string id                  = 1;  // Guid
-//  google.protobuf.Timestamp  upload_date_unix_ms = 2;  // DateTime -> Unix ms
+  string upload_date_unix_ms = 2;  // DateTime -> Unix ms
   string document_id         = 3;  // Guid как строка
 }
 

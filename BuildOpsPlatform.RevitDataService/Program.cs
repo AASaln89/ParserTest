@@ -57,7 +57,7 @@ builder.Services.AddScoped<IRevitDataService, RevitDataService>();
 builder.Services.AddDbContext<RevitDataDbContext>(opt =>
                 opt.UseNpgsql(builder.Configuration.GetConnectionString("RevitDataPostgres")));
 
-builder.Services.AddHostedService<RabbitMqRevitConsumer>();
+builder.Services.AddHostedService<KafkaRevitConsumer>();
 
 var app = builder.Build();
 

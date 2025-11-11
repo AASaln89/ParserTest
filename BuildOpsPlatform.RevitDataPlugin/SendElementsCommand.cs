@@ -16,9 +16,11 @@ namespace BuildOpsPlatform.RevitDataPlugin
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
+            var publisher = new RabbitPublisher("localhost");
+
             var doc = commandData.Application.ActiveUIDocument.Document;
 
-            var dataService = new DataCollectionService();
+            var dataService = new DataCollectionService(doc);
 
             //Готовим сообщение
             var snapshot = new RvtSnapshotDto
@@ -28,8 +30,8 @@ namespace BuildOpsPlatform.RevitDataPlugin
                 Id = Guid.NewGuid()
             };
 
-            dataService.ExtractCategories(doc);
-            dataService.ExtractViews(doc);
+            dataService.ExtractCategories();
+            dataService.ExtractViews();
 
             var baseInfo = new RevitProjectDataMessage
             {
@@ -37,10 +39,10 @@ namespace BuildOpsPlatform.RevitDataPlugin
                 Categories = dataService.Categories,
 
                 //Levels = dataService.ExtractLevels(doc),
-                Worksets = dataService.ExtractWorksets(doc),
-                Stages = dataService.ExtractPhases(doc),
-                DesignOptions = dataService.ExtractDesignOptions(doc),
-                Grids = dataService.ExtractGrids(doc),
+                Worksets = dataService.ExtractWorksets(),
+                Stages = dataService.ExtractPhases(),
+                DesignOptions = dataService.ExtractDesignOptions(),
+                Grids = dataService.ExtractGrids(),
                 //Materials = materials,
                 Views = dataService.Views,
                 //Sites = dataService.ExtractSites(doc),
@@ -48,13 +50,10 @@ namespace BuildOpsPlatform.RevitDataPlugin
             };
 
             // Отправляем в RabbitMQ
-            using (var publisher = new RabbitPublisher("localhost"))
-            {
-                publisher.Publish(baseInfo);
-            }
+            publisher.Publish(baseInfo);
 
-            dataService.ExtractElements(doc);
-            dataService.ExtractErrors(doc);
+            dataService.ExtractElements();
+            dataService.ExtractErrors();
 
             var parameters = new RevitProjectDataMessage
             {
@@ -62,10 +61,7 @@ namespace BuildOpsPlatform.RevitDataPlugin
                 Parameters = dataService.Parameters,
             };
 
-            using (var publisher = new RabbitPublisher("localhost"))
-            {
-                publisher.Publish(parameters);
-            }
+            publisher.Publish(parameters);
 
             foreach (var chunk in ChunkBy(dataService.Elements, 40000))
             {
@@ -75,10 +71,7 @@ namespace BuildOpsPlatform.RevitDataPlugin
                     Elements = chunk
                 };
 
-                using (var publisher = new RabbitPublisher("localhost"))
-                {
-                    publisher.Publish(revitElements);
-                }
+                publisher.Publish(revitElements);
 
                 Task.Delay(100).Wait();
             }
@@ -96,7 +89,6 @@ namespace BuildOpsPlatform.RevitDataPlugin
             //    publisher.Publish(elementViews);
             //}
 
-            Task.Delay(10000).Wait();
             // Значения элементов
             foreach (var chunk in ChunkBy(dataService.ElementsValues, 40000))
             {
@@ -106,15 +98,11 @@ namespace BuildOpsPlatform.RevitDataPlugin
                     ElementValues = chunk
                 };
 
-                using (var publisher = new RabbitPublisher("localhost"))
-                {
-                    publisher.Publish(elementsValues);
-                }
+                publisher.Publish(elementsValues);
 
                 Task.Delay(100).Wait();
             }
 
-            Task.Delay(10000).Wait();
             var errors = new RevitProjectDataMessage
             {
                 Snapshot = snapshot,
@@ -122,10 +110,8 @@ namespace BuildOpsPlatform.RevitDataPlugin
                 ElementErrors = dataService.ElementErrors,
             };
 
-            using (var publisher = new RabbitPublisher("localhost"))
-            {
-                publisher.Publish(errors);
-            }
+            publisher.Publish(errors);
+            publisher.Dispose();
 
             return Result.Succeeded;
         }

@@ -11,10 +11,12 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
     public class DataCollectionService
     {
         private readonly HttpRevitDataService _service;
+        private readonly Document _doc;
         private List<BuiltInCategory> _builtInCategory = new List<BuiltInCategory>();
 
-        public DataCollectionService()
+        public DataCollectionService(Document doc)
         {
+            _doc = doc;
             _service = new HttpRevitDataService();
             _builtInCategory = new List<BuiltInCategory>();
         }
@@ -44,7 +46,7 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
             };
         }
 
-        public void ExtractCategories(Document doc)
+        public void ExtractCategories()
         {
             //var hasCategories = _service.Get();
             //if (hasCategories)
@@ -54,7 +56,7 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
             //    return result;
             //}
 
-            var categories = doc.Settings.Categories
+            var categories = _doc.Settings.Categories
                 .Cast<Category>()
                 
                 //.Where(x => x.CategoryType == CategoryType.Model)
@@ -104,7 +106,7 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
             });
         }
 
-        public void ExtractElements(Document doc)
+        public void ExtractElements()
         {
             // Кеши на весь проход (один снапшот / один документ)
             var parametersByKey = new Dictionary<Guid, ParameterDto>(); // ParamKey -> ParameterDto
@@ -114,7 +116,7 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
 
             foreach (var cat in _builtInCategory)
             {
-                var collector = new FilteredElementCollector(doc)
+                var collector = new FilteredElementCollector(_doc)
                     .OfCategory(cat)
                     .WhereElementIsNotElementType()
                     .OfType<Element>();
@@ -142,7 +144,7 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
                     var typeId = element.GetTypeId();
                     if (typeId != ElementId.InvalidElementId && seenTypes.Add(typeId.IntegerValue))
                     {
-                        var type = doc.GetElement(typeId);
+                        var type = _doc.GetElement(typeId);
                         if (type != null)
                             foreach (Parameter p in type.Parameters)
                                 TryAddParameter(p, elementDto.ElementId, isTypeParam: true);
@@ -241,10 +243,10 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
             }
         }
 
-        public List<WorksetDto> ExtractWorksets(Document doc)
+        public List<WorksetDto> ExtractWorksets()
         {
             var result = new List<WorksetDto>();
-            var worksets = new FilteredWorksetCollector(doc)
+            var worksets = new FilteredWorksetCollector(_doc)
                 .OfKind(WorksetKind.UserWorkset)
                 .ToList();
 
@@ -309,18 +311,18 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
         //    }
         //}
 
-        public RvtDocumentDto ExtractDocument(Document doc)
+        public RvtDocumentDto ExtractDocument()
         {
             return new RvtDocumentDto
             {
-                Id = doc.Title,
-                AppVersion = doc.Application.VersionName,
+                Id = _doc.Title,
+                AppVersion = _doc.Application.VersionName,
             };
         }
 
-        public List<SiteDto> ExtractSites(Document doc)
+        public List<SiteDto> ExtractSites()
         {
-            var siteLocations = new FilteredElementCollector(doc)
+            var siteLocations = new FilteredElementCollector(_doc)
                 .OfClass(typeof(BasePoint))
                 .OfType<BasePoint>()
                 .ToList();
@@ -331,8 +333,8 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
                     SiteId = bp.Id.IntegerValue,
                     SiteUniqueId = bp.UniqueId,
                     Name = bp.Name,
-                    Latitude = doc.SiteLocation.Latitude.ToString(),
-                    Longitude = doc.SiteLocation.Longitude.ToString(),
+                    Latitude = _doc.SiteLocation.Latitude.ToString(),
+                    Longitude = _doc.SiteLocation.Longitude.ToString(),
                     BasePointElevetionValue = bp.get_Parameter(BuiltInParameter.BASEPOINT_ELEVATION_PARAM)?.AsValueString(),
                     BasePointEastWest = bp.get_Parameter(BuiltInParameter.BASEPOINT_EASTWEST_PARAM)?.AsValueString(),
                     BasePointNorthSouth = bp.get_Parameter(BuiltInParameter.BASEPOINT_NORTHSOUTH_PARAM)?.AsValueString(),
@@ -340,9 +342,9 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
                 })
                 .ToList();
         }
-        public List<StageDto> ExtractPhases(Document doc)
+        public List<StageDto> ExtractPhases()
         {
-            var phases = new FilteredElementCollector(doc)
+            var phases = new FilteredElementCollector(_doc)
                 .OfClass(typeof(Phase))
                 .OfType<Phase>()
                 .ToList();
@@ -357,9 +359,9 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
                 .ToList();
         }
 
-        public List<DesignOptionDto> ExtractDesignOptions(Document doc)
+        public List<DesignOptionDto> ExtractDesignOptions()
         {
-            var options = new FilteredElementCollector(doc)
+            var options = new FilteredElementCollector(_doc)
                 .OfClass(typeof(DesignOption))
                 .OfType<DesignOption>();
 
@@ -373,9 +375,9 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
                 .ToList();
         }
 
-        public List<GridDto> ExtractGrids(Document doc)
+        public List<GridDto> ExtractGrids()
         {
-            return new FilteredElementCollector(doc)
+            return new FilteredElementCollector(_doc)
                 .OfClass(typeof(Grid))
                 .OfType<Grid>()
                 .Select(grid => new GridDto
@@ -387,9 +389,9 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
                 .ToList();
         }
 
-        public List<MaterialDto> ExtractMaterials(Document doc)
+        public List<MaterialDto> ExtractMaterials()
         {
-            return new FilteredElementCollector(doc)
+            return new FilteredElementCollector(_doc)
                 .OfClass(typeof(Material))
                 .OfType<Material>()
                 .Select(m => new MaterialDto
@@ -401,9 +403,9 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
                 .ToList();
         }
 
-        public void ExtractViews(Document doc)
+        public void ExtractViews()
         {
-            var views = new FilteredElementCollector(doc)
+            var views = new FilteredElementCollector(_doc)
                .OfClass(typeof(View))
                .OfType<View>()
                .Where(v => !v.IsTemplate);
@@ -421,7 +423,7 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
 
             foreach(var view in views.Where(x=>x.Name == "Navisworks"))
             {
-                var elements = new FilteredElementCollector(doc, view.Id)
+                var elements = new FilteredElementCollector(_doc, view.Id)
                    .WhereElementIsNotElementType()
                    .OfType<Element>();
 
@@ -436,9 +438,9 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
             }
         }
 
-        public void ExtractErrors(Document doc)
+        public void ExtractErrors()
         {
-            var failures = doc.GetWarnings();
+            var failures = _doc.GetWarnings();
 
             foreach (var f in failures)
             {
@@ -452,8 +454,8 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
                 {
                     if (!ElementIds.ContainsKey(elemId.IntegerValue))
                     {
-                        ElementIds.Add(elemId.IntegerValue, doc.GetElement(elemId)?.UniqueId ?? string.Empty);
-                        var element =  doc.GetElement(elemId);
+                        ElementIds.Add(elemId.IntegerValue, _doc.GetElement(elemId)?.UniqueId ?? string.Empty);
+                        var element = _doc.GetElement(elemId);
 
                         var elementDto = new ElementDto
                         {
@@ -485,16 +487,16 @@ namespace BuildOpsPlatform.RevitDataPlugin.Services
             }
         }
 
-        private List<ElementFilter> BuildCategoryFilters(Document document)
+        private List<ElementFilter> BuildCategoryFilters()
         {
             var filters = new List<ElementFilter>();
-            var categories = document.Settings.Categories;
+            var categories = _doc.Settings.Categories;
 
             foreach (Category category in categories)
             {
                 //_targetCategories.Add
                 var builtInCategory = (BuiltInCategory)category.Id.IntegerValue;
-                var collector = new FilteredElementCollector(document)
+                var collector = new FilteredElementCollector(_doc)
                 .OfCategory(builtInCategory)
                 .WhereElementIsNotElementType()
                 .OfType<Element>()

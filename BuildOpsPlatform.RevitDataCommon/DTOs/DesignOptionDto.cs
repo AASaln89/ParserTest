@@ -10,5 +10,5 @@ namespace BuildOpsPlatform.RevitDataCommon.DTOs
 
         public Guid? DocumentSnapshotId { get; set; }
         public int CategoryId { get; set; }
-}
+    }
 }

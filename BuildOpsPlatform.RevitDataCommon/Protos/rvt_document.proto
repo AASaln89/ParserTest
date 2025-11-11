@@ -1,0 +1,17 @@
+﻿syntax = "proto3";
+
+package rvt;
+option csharp_namespace = "BuildOps.Protos";
+
+message RvtDocument {
+  string id = 1;
+  string app_version = 2;
+  string project_code = 3;
+  string project_name = 4;
+  string author = 5;
+  string stage = 6;
+  string building = 7;
+  string discipline = 8;
+  string description = 9;
+  string project_id = 10; // Guid как строка
+}

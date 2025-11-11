@@ -6,13 +6,13 @@ using System.Text;
 
 namespace BuildOpsPlatform.RevitDataPlugin.Publishers
 {
-    public class RabbitPublisher : IDisposable
+    public class RabbitPublisher : Publisher, IDisposable
     {
         private readonly IConnection _connection;
         private readonly IModel _channel;
         private const string QueueName = "revit.project.data";
 
-        public RabbitPublisher(string host = "localhost", int port = 5672)
+        public RabbitPublisher(string host = "localhost", int port = 5672) : base(QueueName, host, port)
         {
             var factory = new ConnectionFactory
             {
@@ -32,7 +32,7 @@ namespace BuildOpsPlatform.RevitDataPlugin.Publishers
             );
         }
 
-        public void Publish(RevitProjectDataMessage message)
+        public override void Publish<T>(T message)
         {
             var json = JsonConvert.SerializeObject(message);
             var body = Encoding.UTF8.GetBytes(json);
